@@ -2,6 +2,8 @@
 
 Zero-dependency 2D autonomous racing sandbox trained in real time via neuroevolution and 5-ray LiDAR sensors. Runs directly in any browser (`index.html`), with full `EN / 繁中` bilingual UI and Light/Dark themes.
 
+![neuro-evo-cars Preview](assets/preview.png)
+
 ## Features
 
 - **7 Built-In Tracks + Custom Track Drawing & JSON I/O (`js/tracks.js`)**:
