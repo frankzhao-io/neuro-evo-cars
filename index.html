@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>neuro-evo-cars · Neuroevolution Racing Sandbox</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div>
+        <h1>neuro-evo-cars</h1>
+        <p id="txt-subtitle" class="subtitle">2D autonomous racing trained in real time via neuroevolution + 5-ray LiDAR</p>
+      </div>
+      <div class="hud-stats">
+        <div class="stat"><span id="lbl-stat-gen" class="stat-k">GEN</span><strong id="stat-gen">1</strong></div>
+        <div class="stat"><span id="lbl-stat-alive" class="stat-k">ALIVE</span><strong id="stat-alive">50/50</strong></div>
+        <div class="stat"><span id="lbl-stat-best" class="stat-k">BEST</span><strong id="stat-best">0</strong></div>
+        <div class="stat"><span id="lbl-stat-laps" class="stat-k">LAPS</span><strong id="stat-laps">0</strong></div>
+        <div class="lang-toggle" role="group" aria-label="Language">
+          <button id="page-lang-en" class="lang-btn active" type="button">EN</button>
+          <button id="page-lang-zh" class="lang-btn" type="button">繁中</button>
+        </div>
+        <button id="btn-theme" class="btn" type="button">Light</button>
+        <button id="btn-guide" class="btn" type="button">Guide</button>
+      </div>
+    </header>
+
+    <nav class="main-tabs" role="tablist">
+      <button id="tab-btn-sim" class="main-tab active" type="button" data-view="sim">Simulation</button>
+      <button id="tab-btn-insights" class="main-tab" type="button" data-view="insights">Model Insights</button>
+    </nav>
+
+    <main id="view-sim" class="workspace">
+      <section class="track-panel">
+        <div class="canvas-bar">
+          <div class="bar-left">
+            <button id="btn-toggle-run" class="btn btn-primary" type="button">Pause</button>
+            <button id="btn-next-gen" class="btn" type="button">Next Gen</button>
+            <button id="btn-reset" class="btn" type="button">Reset</button>
+            <button id="btn-allstar" class="btn" type="button">All-Star Race</button>
+            <button id="btn-human-pk" class="btn" type="button">Human PK</button>
+          </div>
+          <div class="bar-right">
+            <label class="inline-ctrl">
+              <span id="lbl-speed">Speed</span>
+              <select id="sel-speed">
+                <option value="1">1x</option>
+                <option value="2" selected>2x</option>
+                <option value="5">5x</option>
+                <option value="15">15x Turbo</option>
+              </select>
+            </label>
+            <label class="inline-chk"><input id="chk-rays" type="checkbox" checked /> <span id="lbl-lidar">LiDAR</span></label>
+            <label class="inline-chk"><input id="chk-cp" type="checkbox" /> <span id="lbl-cp">Checkpoints</span></label>
+            <label class="inline-chk"><input id="chk-trails" type="checkbox" /> <span id="lbl-trails">Trails</span></label>
+          </div>
+        </div>
+
+        <div class="canvas-wrap">
+          <canvas id="track-canvas" width="820" height="560"></canvas>
+          <div id="draw-banner" class="draw-banner hidden">
+            Draw a closed loop on the canvas, then release to generate track
+          </div>
+        </div>
+        <div id="live-coach" class="live-coach"></div>
+      </section>
+
+      <aside class="side-panel">
+        <div class="card">
+          <div id="lbl-card-track" class="card-label">Track &amp; Map</div>
+          <div class="row-gap">
+            <select id="sel-track">
+              <option value="oval">Oval Speedring (Easy)</option>
+              <option value="kidney">Kidney Sweeper (Medium)</option>
+              <option value="scurve">S-Curve Circuit (Medium)</option>
+              <option value="monza">Double Chicane GP (Hard)</option>
+              <option value="hairpin">Hairpin Chicane (Hard)</option>
+              <option value="technical">Technical Apex Loop (Expert)</option>
+              <option value="spiral">Narrow Canyon (Expert)</option>
+              <option value="custom" disabled hidden>Custom Track</option>
+            </select>
+            <button id="btn-draw-track" class="btn" type="button">Draw Custom</button>
+          </div>
+          <div class="row-gap" style="margin-top:6px;">
+            <button id="btn-export-track" class="btn btn-sm" type="button">Export Track</button>
+            <button id="btn-import-track" class="btn btn-sm" type="button">Import Track</button>
+            <input id="file-import-track" type="file" accept=".json" class="hidden" />
+          </div>
+        </div>
+
+        <div class="card">
+          <div id="lbl-card-model" class="card-label">Neural Network Model</div>
+          <select id="sel-model" class="full-width">
+            <option value="mlp_tiny">Linear Perceptron (6 -> 2)</option>
+            <option value="mlp_small" selected>Small MLP (6 -> 6 -> 2)</option>
+            <option value="mlp_wide">Wide ReLU MLP (6 -> 12 -> 2)</option>
+            <option value="mlp_deep">Deep MLP (6 -> 10 -> 6 -> 2)</option>
+            <option value="rnn_memory">Memory RNN (6+2 -> 8 -> 2)</option>
+          </select>
+          <div id="model-desc" class="muted-note">Fastest convergence on standard curves</div>
+
+          <div class="slider-row">
+            <label><span id="lbl-reward-txt">Reward Strategy</span></label>
+            <select id="sel-reward" class="full-width">
+              <option value="balanced" selected>Balanced (Checkpoints + Distance)</option>
+              <option value="speed">Speed Focus (High-Speed Bonus)</option>
+              <option value="smooth">Smooth Apex (Penalize Zig-Zag)</option>
+            </select>
+          </div>
+
+          <div class="slider-row">
+            <label><span id="lbl-pop-txt">Population</span>: <strong id="lbl-pop">50</strong></label>
+            <input id="rng-pop" type="range" min="20" max="100" step="10" value="50" />
+          </div>
+          <div class="slider-row">
+            <label><span id="lbl-mut-txt">Mutation Rate</span>: <strong id="lbl-mut">0.15</strong></label>
+            <input id="rng-mut" type="range" min="0.05" max="0.40" step="0.05" value="0.15" />
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-label-row">
+            <span id="lbl-card-brain" class="card-label" style="margin:0;">Champion Brain (Live)</span>
+            <div class="mini-btns">
+              <button id="btn-help-brain" class="btn btn-sm" type="button" title="Explain">?</button>
+              <button id="btn-save-brain" class="btn btn-sm" type="button">Save</button>
+              <button id="btn-load-brain" class="btn btn-sm" type="button">Load</button>
+              <button id="btn-export-brain" class="btn btn-sm" type="button">Export</button>
+              <button id="btn-import-brain" class="btn btn-sm" type="button">Import</button>
+              <input id="file-import-brain" type="file" accept=".json" class="hidden" />
+            </div>
+          </div>
+          <div id="help-brain-box" class="inline-help hidden"></div>
+          <canvas id="nn-canvas" width="320" height="170"></canvas>
+          <div id="brain-status" class="muted-note">Green = positive activation, Red = negative</div>
+        </div>
+
+        <div class="card">
+          <div class="card-label-row">
+            <span id="lbl-card-chart" class="card-label" style="margin:0;">Fitness History (Best vs. Avg)</span>
+            <button id="btn-help-chart" class="btn btn-sm" type="button" title="Explain">?</button>
+          </div>
+          <div id="help-chart-box" class="inline-help hidden"></div>
+          <canvas id="chart-canvas" width="320" height="115"></canvas>
+        </div>
+
+        <div class="card">
+          <div class="card-label-row">
+            <span id="lbl-card-log" class="card-label" style="margin:0;">Training Log</span>
+            <div class="mini-btns">
+              <button id="btn-export-log" class="btn btn-sm" type="button">Export</button>
+              <button id="btn-clear-log" class="btn btn-sm" type="button">Clear</button>
+            </div>
+          </div>
+          <div id="log-list" class="log-list mono"></div>
+        </div>
+      </aside>
+    </main>
+
+    <section id="view-insights" class="insights-view hidden">
+      <div class="card bench-banner">
+        <div class="bench-head">
+          <div>
+            <div id="lbl-bench-title" class="card-label" style="margin-bottom:2px;">Head-to-Head 5-Model Benchmark</div>
+            <div id="lbl-bench-sub" class="muted-note" style="margin-top:0;">Train all 5 architectures side-by-side on the current track (8 generations each) and compare curves &amp; steering decisions.</div>
+          </div>
+          <div class="bench-actions">
+            <span id="bench-status" class="muted-note mono" style="margin-top:0;"></span>
+            <select id="sel-bench-gens" class="btn-sm">
+              <option value="8" selected>8 Gen</option>
+              <option value="20">20 Gen</option>
+              <option value="40">40 Gen</option>
+            </select>
+            <button id="btn-help-bench" class="btn btn-sm" type="button" title="Explain">?</button>
+            <button id="btn-run-bench" class="btn btn-primary" type="button">Run 5-Model Benchmark</button>
+          </div>
+        </div>
+        <div id="help-bench-box" class="inline-help hidden"></div>
+        <div class="bench-chart-wrap">
+          <canvas id="bench-chart-canvas" width="760" height="175"></canvas>
+          <div id="bench-legend" class="bench-legend"></div>
+        </div>
+      </div>
+
+      <div class="insights-grid" style="margin-top:16px;">
+        <div class="card">
+          <div id="lbl-ins-models" class="card-label">Model Architectures &amp; Behavior</div>
+          <div id="insights-model-cards" class="model-cards"></div>
+        </div>
+
+        <div class="insights-col">
+          <div class="card">
+            <div id="lbl-ins-probe" class="card-label">Side-by-Side Decision Probe (All Models)</div>
+            <p id="lbl-ins-probe-desc" class="muted-note" style="margin-top:0;"></p>
+            <div class="probe-presets">
+              <button class="btn btn-sm" type="button" data-probe="left_wall" id="probe-btn-left">Left Wall Close</button>
+              <button class="btn btn-sm" type="button" data-probe="right_wall" id="probe-btn-right">Right Wall Close</button>
+              <button class="btn btn-sm" type="button" data-probe="dead_end" id="probe-btn-front">Front Wall Ahead</button>
+              <button class="btn btn-sm" type="button" data-probe="straight" id="probe-btn-open">Open Straight</button>
+            </div>
+            <div id="probe-sliders" class="probe-sliders"></div>
+            <div id="probe-output" class="probe-output"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-label-row">
+              <span id="lbl-ins-gen" class="card-label" style="margin:0;">Cross-Track Generalization Test</span>
+              <button id="btn-run-gen-test" class="btn btn-sm btn-primary" type="button">Test All 7 Tracks</button>
+            </div>
+            <p id="lbl-ins-gen-desc" class="muted-note" style="margin-top:4px;"></p>
+            <div id="gen-test-output" class="gen-test-output"></div>
+          </div>
+
+          <div class="card">
+            <div id="lbl-ins-bench" class="card-label">Model Comparison Leaderboard</div>
+            <div id="insights-leaderboard"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="guide-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="guide-title">
+    <div class="modal-card">
+      <div class="modal-head">
+        <strong id="guide-title">Quick Guide</strong>
+        <div class="modal-actions">
+          <div class="lang-toggle" role="group" aria-label="Guide Language">
+            <button id="guide-lang-en" class="lang-btn" type="button">EN</button>
+            <button id="guide-lang-zh" class="lang-btn active" type="button">繁中</button>
+          </div>
+          <button id="btn-close-guide" class="btn btn-sm" type="button">Close</button>
+        </div>
+      </div>
+      <div id="guide-body" class="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="js/nn.js"></script>
+  <script src="js/tracks.js"></script>
+  <script src="js/car.js"></script>
+  <script src="js/visualizer.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
