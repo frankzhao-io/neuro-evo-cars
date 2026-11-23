@@ -2,6 +2,11 @@
 
 All notable changes to `neuro-evo-cars` will be documented in this file.
 
+## [0.1.2] - 2026-11-24
+
+### Added
+- Added GitHub Pages `Live Demo` link to `README.md`.
+
 ## [0.1.1] - 2026-11-23
 
 ### Added
